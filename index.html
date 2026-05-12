@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HelpDesk | Ticket Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #0a0e1a;
+    color: #c9d1e0;
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .topbar {
+    background: #111827;
+    border-bottom: 1px solid #1e3a5f;
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .topbar-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: #4a6fa5;
+    margin-left: 10px;
+  }
+  .topbar-title span { color: #4a8fd4; }
+  .topbar-stats { margin-left: auto; display: flex; gap: 20px; }
+  .stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #4a6fa5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-val { color: #c9d1e0; font-weight: 500; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: calc(100vh - 49px);
+  }
+
+  .sidebar {
+    background: #0d1120;
+    border-right: 1px solid #1e3a5f;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .sidebar-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #28c840;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #4a6fa5;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: #c9d1e0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus { border-color: #4a8fd4; }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select option { background: #111827; }
+
+  .btn-submit {
+    width: 100%;
+    background: #4a8fd4;
+    color: #0a0e1a;
+    border: none;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+  .btn-submit:hover { background: #7fc6ff; }
+
+  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .filter-btn {
+    background: transparent;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 7px 12px;
+    color: #4a6fa5;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .filter-btn:hover { border-color: #4a8fd4; color: #c9d1e0; }
+  .filter-btn.active { border-color: #4a8fd4; background: rgba(74,143,212,0.1); color: #4a8fd4; }
+  .filter-count {
+    background: #1e3a5f;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    color: #4a8fd4;
+  }
+
+  .main { padding: 28px 32px; }
+  .main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .main-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #28c840;
+  }
+  .sort-row { display: flex; gap: 8px; align-items: center; }
+  .sort-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #4a6fa5; }
+  .sort-select {
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: #c9d1e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .ticket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .ticket-card {
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s, transform 0.15s;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+  .ticket-card:hover { border-color: #2a4a7f; transform: translateY(-1px); }
+
+  .ticket-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .ticket-id { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #4a6fa5; }
+  .priority-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .priority-low { background: rgba(40,200,64,0.12); border: 1px solid rgba(40,200,64,0.3); color: #28c840; }
+  .priority-medium { background: rgba(254,188,46,0.12); border: 1px solid rgba(254,188,46,0.3); color: #febc2e; }
+  .priority-high { background: rgba(255,95,87,0.12); border: 1px solid rgba(255,95,87,0.3); color: #ff5f57; }
+  .priority-critical { background: rgba(180,50,220,0.12); border: 1px solid rgba(180,50,220,0.3); color: #c060f0; }
+
+  .ticket-title { font-size: 14px; font-weight: 500; color: #e8edf5; line-height: 1.4; }
+  .ticket-desc { font-size: 12px; color: #6a7f9a; line-height: 1.5; flex: 1; }
+  .ticket-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+
+  .status-select {
+    background: #0d1120;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #c9d1e0;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .status-select:focus { border-color: #4a8fd4; }
+  .status-select.open { color: #4a8fd4; }
+  .status-select.in-progress { color: #febc2e; }
+  .status-select.resolved { color: #28c840; }
+
+  .ticket-actions { display: flex; gap: 6px; }
+  .btn-delete {
+    background: transparent;
+    border: 1px solid #2a1a1a;
+    border-radius: 4px;
+    padding: 4px 10px;
+    color: #5a3030;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-delete:hover { border-color: #ff5f57; color: #ff5f57; background: rgba(255,95,87,0.08); }
+
+  .ticket-date { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #2a3a54; margin-top: 2px; }
+
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #2a3a54;
+  }
+  .empty-state p { font-family: 'IBM Plex Mono', monospace; font-size: 13px; margin-bottom: 8px; }
+  .empty-icon { font-size: 32px; margin-bottom: 16px; opacity: 0.3; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-left: 3px solid #28c840;
+    border-radius: 6px;
+    padding: 12px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #28c840;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-left-color: #ff5f57; color: #ff5f57; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="dot dot-red"></div>
+  <div class="dot dot-yellow"></div>
+  <div class="dot dot-green"></div>
+  <div class="topbar-title">helpdesk ~ <span>ticket-tracker</span></div>
+  <div class="topbar-stats">
+    <div class="stat">total <span class="stat-val" id="stat-total">0</span></div>
+    <div class="stat">open <span class="stat-val" id="stat-open">0</span></div>
+    <div class="stat">resolved <span class="stat-val" id="stat-resolved">0</span></div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">// new ticket</div>
+      <div class="form-group">
+        <label>title</label>
+        <input type="text" id="input-title" placeholder="e.g. Printer not connecting" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label>description</label>
+        <textarea id="input-desc" placeholder="Describe the issue..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>priority</label>
+        <select id="input-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>assigned to</label>
+        <input type="text" id="input-assignee" placeholder="e.g. Stephen Hand">
+      </div>
+      <button class="btn-submit" onclick="createTicket()">+ Create Ticket</button>
+    </div>
+
+    <div>
+      <div class="sidebar-section-label">// filter</div>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setFilter('all')" id="filter-all">
+          All tickets <span class="filter-count" id="count-all">0</span>
+        </button>
+        <button class="filter-btn" onclick="setFilter('open')" id="filter-open">
+          Open <span class="filter-count" id="count-open">0</span>
+        </button>
+        <button class="filter-btn" onclick="setFilter('in-progress')" id="filter-in-progress">
+          In Progress <span class="filter-count" id="count-in-progress">0</span>
+        </button>
+        <button class="filter-btn" onclick="setFilter('resolved')" id="filter-resolved">
+          Resolved <span class="filter-count" id="count-resolved">0</span>
+        </button>
+        <button class="filter-btn" onclick="setFilter('critical')" id="filter-critical">
+          Critical <span class="filter-count" id="count-critical">0</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="main-title" id="main-label">// all tickets</div>
+      <div class="sort-row">
+        <span class="sort-label">sort:</span>
+        <select class="sort-select" onchange="setSort(this.value)">
+          <option value="newest">newest first</option>
+          <option value="oldest">oldest first</option>
+          <option value="priority">by priority</option>
+        </select>
+      </div>
+    </div>
+    <div class="ticket-grid" id="ticket-grid"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let tickets = JSON.parse(localStorage.getItem('hd_tickets') || '[]');
+  let currentFilter = 'all';
+  let currentSort = 'newest';
+  let ticketCounter = parseInt(localStorage.getItem('hd_counter') || '0');
+
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  function save() {
+    localStorage.setItem('hd_tickets', JSON.stringify(tickets));
+    localStorage.setItem('hd_counter', ticketCounter);
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type === 'error' ? ' error' : '');
+    setTimeout(function() { t.className = 'toast'; }, 2500);
+  }
+
+  function createTicket() {
+    const title = document.getElementById('input-title').value.trim();
+    const desc = document.getElementById('input-desc').value.trim();
+    const priority = document.getElementById('input-priority').value;
+    const assignee = document.getElementById('input-assignee').value.trim();
+
+    if (!title) { showToast('Title is required', 'error'); return; }
+
+    ticketCounter++;
+    const ticket = {
+      id: ticketCounter,
+      title: title,
+      desc: desc,
+      priority: priority,
+      assignee: assignee || 'Unassigned',
+      status: 'open',
+      created: new Date().toISOString()
+    };
+
+    tickets.unshift(ticket);
+    save();
+    render();
+    showToast('Ticket #' + ticket.id + ' created');
+
+    document.getElementById('input-title').value = '';
+    document.getElementById('input-desc').value = '';
+    document.getElementById('input-assignee').value = '';
+    document.getElementById('input-priority').value = 'medium';
+  }
+
+  function updateStatus(id, status) {
+    var t = tickets.find(function(t) { return t.id === id; });
+    if (t) { t.status = status; save(); render(); }
+  }
+
+  function deleteTicket(id) {
+    tickets = tickets.filter(function(t) { return t.id !== id; });
+    save();
+    render();
+    showToast('Ticket deleted');
+  }
+
+  function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('filter-' + f).classList.add('active');
+    var labels = { all: '// all tickets', open: '// open tickets', 'in-progress': '// in progress', resolved: '// resolved', critical: '// critical' };
+    document.getElementById('main-label').textContent = labels[f];
+    render();
+  }
+
+  function setSort(s) { currentSort = s; render(); }
+
+  function getFiltered() {
+    var list = tickets.slice();
+    if (currentFilter === 'critical') list = list.filter(function(t) { return t.priority === 'critical'; });
+    else if (currentFilter !== 'all') list = list.filter(function(t) { return t.status === currentFilter; });
+
+    if (currentSort === 'oldest') list.sort(function(a,b) { return new Date(a.created) - new Date(b.created); });
+    else if (currentSort === 'priority') list.sort(function(a,b) { return priorityOrder[a.priority] - priorityOrder[b.priority]; });
+    else list.sort(function(a,b) { return new Date(b.created) - new Date(a.created); });
+    return list;
+  }
+
+  function formatDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render() {
+    var grid = document.getElementById('ticket-grid');
+    var list = getFiltered();
+
+    var counts = { all: tickets.length, open: 0, 'in-progress': 0, resolved: 0, critical: 0 };
+    tickets.forEach(function(t) {
+      if (t.status === 'open') counts.open++;
+      if (t.status === 'in-progress') counts['in-progress']++;
+      if (t.status === 'resolved') counts.resolved++;
+      if (t.priority === 'critical') counts.critical++;
+    });
+
+    ['all','open','in-progress','resolved','critical'].forEach(function(k) {
+      var el = document.getElementById('count-' + k);
+      if (el) el.textContent = counts[k];
+    });
+
+    document.getElementById('stat-total').textContent = tickets.length;
+    document.getElementById('stat-open').textContent = counts.open;
+    document.getElementById('stat-resolved').textContent = counts.resolved;
+
+    if (list.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">◻</div><p>no tickets found</p><p style="font-size:11px;color:#1e3a5f;">create one using the form</p></div>';
+      return;
+    }
+
+    grid.innerHTML = list.map(function(t) {
+      return '<div class="ticket-card" id="card-' + t.id + '">' +
+        '<div class="ticket-header">' +
+          '<span class="ticket-id">#' + String(t.id).padStart(4,'0') + '</span>' +
+          '<span class="priority-badge priority-' + t.priority + '">' + t.priority + '</span>' +
+        '</div>' +
+        '<div class="ticket-title">' + escHtml(t.title) + '</div>' +
+        (t.desc ? '<div class="ticket-desc">' + escHtml(t.desc) + '</div>' : '') +
+        '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#2a4a6a;">&#8627; ' + escHtml(t.assignee) + '</div>' +
+        '<div class="ticket-footer">' +
+          '<select class="status-select ' + t.status + '" onchange="updateStatus(' + t.id + ', this.value); this.className=\'status-select \'+this.value;">' +
+            '<option value="open"' + (t.status==='open'?' selected':'') + '>&#9679; open</option>' +
+            '<option value="in-progress"' + (t.status==='in-progress'?' selected':'') + '>&#9680; in progress</option>' +
+            '<option value="resolved"' + (t.status==='resolved'?' selected':'') + '>&#10003; resolved</option>' +
+          '</select>' +
+          '<div class="ticket-actions">' +
+            '<button class="btn-delete" onclick="deleteTicket(' + t.id + ')">delete</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ticket-date">' + formatDate(t.created) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  render();
+</script>
+</body>
+</html>
